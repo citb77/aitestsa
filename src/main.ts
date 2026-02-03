@@ -135,7 +135,7 @@ class Game {
   readonly root: HTMLElement
   readonly renderer: THREE.WebGLRenderer
   readonly scene: THREE.Scene
-  readonly camera: THREE.PerspectiveCamera
+  readonly camera: THREE.OrthographicCamera
   readonly input: Input
   readonly sfx = new Sfx()
 
@@ -199,7 +199,11 @@ class Game {
     this.scene = new THREE.Scene()
     this.scene.fog = new THREE.Fog(0x05060a, 18, 70)
 
-    this.camera = new THREE.PerspectiveCamera(60, root.clientWidth / root.clientHeight, 0.1, 200)
+    // 2.5D camera: Orthographic projection removes perspective distortion while keeping 3D lighting/geometry.
+    const aspect = root.clientWidth / root.clientHeight
+    const viewHeight = 16 // world units visible vertically
+    const viewWidth = viewHeight * aspect
+    this.camera = new THREE.OrthographicCamera(-viewWidth / 2, viewWidth / 2, viewHeight / 2, -viewHeight / 2, 0.1, 200)
     this.camera.position.set(-4, 0, 18)
     this.camera.lookAt(8, 0, 0)
 
@@ -224,8 +228,17 @@ class Game {
   private onResize() {
     const w = this.root.clientWidth
     const h = this.root.clientHeight
-    this.camera.aspect = w / h
+
+    const aspect = w / h
+    const viewHeight = 16
+    const viewWidth = viewHeight * aspect
+
+    this.camera.left = -viewWidth / 2
+    this.camera.right = viewWidth / 2
+    this.camera.top = viewHeight / 2
+    this.camera.bottom = -viewHeight / 2
     this.camera.updateProjectionMatrix()
+
     this.renderer.setSize(w, h)
   }
 
