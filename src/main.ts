@@ -163,6 +163,9 @@ class Game {
   private fireRate = 10 // shots/sec baseline
   private power = 0
 
+  // Brief invulnerability window after taking damage / respawning (fairness + readability)
+  private playerInvuln = 0
+
   private checkpointDist = 0
   private checkpointIndex = 0
   private nextCheckpointAt = 40
@@ -339,6 +342,7 @@ class Game {
     this.fireCooldown = 0
     this.fireRate = 10
     this.power = 0
+    this.playerInvuln = 0
 
     this.checkpointDist = 0
     this.checkpointIndex = 0
@@ -382,6 +386,8 @@ class Game {
     while (this.waveIndex < this.waves.length && this.waves[this.waveIndex].at <= this.distance) this.waveIndex++
 
     this.player.hp = 5
+    this.playerInvuln = 1.25
+    this.player.mesh.visible = true
     this.player.pos.set(0, 0, 0)
     this.player.vel.set(0, 0, 0)
     this.player.mesh.position.copy(this.player.pos)
@@ -645,6 +651,15 @@ class Game {
 
     this.distance += this.scrollSpeed * dt
 
+    // i-frames
+    this.playerInvuln = Math.max(0, this.playerInvuln - dt)
+    if (this.playerInvuln > 0) {
+      // simple flicker for feedback
+      this.player.mesh.visible = Math.floor(performance.now() / 70) % 2 === 0
+    } else {
+      this.player.mesh.visible = true
+    }
+
     // checkpoints
     if (this.distance >= this.nextCheckpointAt) {
       this.checkpointDist = this.nextCheckpointAt
@@ -800,6 +815,7 @@ class Game {
 
   private handleCollisions(_dt: number) {
     const p = this.player
+    const invulnerable = this.playerInvuln > 0
 
     const hits = (a: Entity, b: Entity) => {
       if (a.radius <= 0 || b.radius <= 0) return false
@@ -818,7 +834,7 @@ class Game {
         if (!hits(b, e)) continue
 
         b.ttl = 0
-        e.hp = (e.hp ?? 1) - (b.damage ?? 1)
+        e.hp = Math.max(0, (e.hp ?? 1) - (b.damage ?? 1))
         if ((e.hp ?? 0) <= 0) {
           this.score += e.value ?? 100
           e.ttl = 0
@@ -829,24 +845,30 @@ class Game {
     }
 
     // enemy bullets vs player
-    for (const b of this.entities) {
-      if (b.kind !== 'enemyBullet') continue
-      if (!hits(b, p)) continue
-      b.ttl = 0
-      p.hp = (p.hp ?? 1) - (b.damage ?? 1)
-      this.explode(p.pos.clone().add(new THREE.Vector3(0.2, 0, 0)), 0xff3b3b)
-      if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
+    if (!invulnerable) {
+      for (const b of this.entities) {
+        if (b.kind !== 'enemyBullet') continue
+        if (!hits(b, p)) continue
+        b.ttl = 0
+        p.hp = Math.max(0, (p.hp ?? 1) - (b.damage ?? 1))
+        this.playerInvuln = 0.75
+        this.explode(p.pos.clone().add(new THREE.Vector3(0.2, 0, 0)), 0xff3b3b)
+        if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
+      }
     }
 
     // enemies/asteroids ramming player
-    for (const e of this.entities) {
-      if (e.kind !== 'enemy' && e.kind !== 'asteroid') continue
-      if (!hits(e, p)) continue
-      e.ttl = 0
-      p.hp = (p.hp ?? 1) - (e.kind === 'asteroid' ? 3 : 2)
-      this.explode(e.pos, e.kind === 'asteroid' ? 0xc7a07a : 0xff5a92)
-      this.explode(p.pos, 0xff3b3b)
-      if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
+    if (!invulnerable) {
+      for (const e of this.entities) {
+        if (e.kind !== 'enemy' && e.kind !== 'asteroid') continue
+        if (!hits(e, p)) continue
+        e.ttl = 0
+        p.hp = Math.max(0, (p.hp ?? 1) - (e.kind === 'asteroid' ? 3 : 2))
+        this.playerInvuln = 0.85
+        this.explode(e.pos, e.kind === 'asteroid' ? 0xc7a07a : 0xff5a92)
+        this.explode(p.pos, 0xff3b3b)
+        if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
+      }
     }
 
     // pickups
@@ -867,6 +889,8 @@ class Game {
 
   private onPlayerDeath() {
     this.gameOver = true
+    this.playerInvuln = 0
+    this.player.mesh.visible = true
     this.bannerEl.innerHTML = `
       <h1>Ship down</h1>
       <p>Score: <strong>${this.score}</strong></p>
