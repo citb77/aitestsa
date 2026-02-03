@@ -1,5 +1,6 @@
 import './style.css'
 import * as THREE from 'three'
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 
 type Vec2 = { x: number; y: number }
 
@@ -144,9 +145,8 @@ class Game {
   private bannerEl: HTMLDivElement
 
   private texLoader = new THREE.TextureLoader()
+  private fbxLoader = new FBXLoader()
   private texShip: THREE.Texture | null = null
-  private texEnemy: THREE.Texture | null = null
-  private texEnemy2: THREE.Texture | null = null
 
   private entities: Entity[] = []
   private player!: Entity
@@ -197,7 +197,7 @@ class Game {
     })
 
     this.scene = new THREE.Scene()
-    this.scene.fog = new THREE.Fog(0x05060a, 18, 70)
+    this.scene.fog = null
 
     // 2.5D camera: Orthographic projection removes perspective distortion while keeping 3D lighting/geometry.
     const aspect = root.clientWidth / root.clientHeight
@@ -250,60 +250,30 @@ class Game {
     dir.position.set(5, 8, 10)
     this.scene.add(dir)
 
-    // Dungeon-ish corridor: floor + ceiling + "pipes"
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1d2b3a, roughness: 0.9, metalness: 0.1 })
-    const ceilMat = new THREE.MeshStandardMaterial({ color: 0x14202c, roughness: 0.95, metalness: 0.1 })
-
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(220, 18, 1, 1), floorMat)
-    floor.rotation.x = -Math.PI / 2
-    floor.position.set(60, -7.5, 0)
-    this.scene.add(floor)
-
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(220, 18, 1, 1), ceilMat)
-    ceil.rotation.x = Math.PI / 2
-    ceil.position.set(60, 7.5, 0)
-    this.scene.add(ceil)
-
-    // side walls
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x101822, roughness: 0.95, metalness: 0.1 })
-    const wallGeom = new THREE.PlaneGeometry(220, 15)
-
-    const wallTop = new THREE.Mesh(wallGeom, wallMat)
-    wallTop.position.set(60, 0, -9)
-    wallTop.rotation.y = 0
-    this.scene.add(wallTop)
-
-    const wallBot = new THREE.Mesh(wallGeom, wallMat)
-    wallBot.position.set(60, 0, 9)
-    wallBot.rotation.y = Math.PI
-    this.scene.add(wallBot)
-
-    // parallax layers: distant grid + particles
-    const grid1 = new THREE.GridHelper(220, 60, 0x1a6aa3, 0x0b2338)
-    grid1.rotation.z = Math.PI / 2
-    grid1.position.set(60, 0, -22)
-    this.scene.add(grid1)
-    this.parallax.push({ obj: grid1, factor: 0.15 })
-
-    const grid2 = new THREE.GridHelper(220, 40, 0x2e97cc, 0x0b1a28)
-    grid2.rotation.z = Math.PI / 2
-    grid2.position.set(60, 0, 24)
-    this.scene.add(grid2)
-    this.parallax.push({ obj: grid2, factor: 0.1 })
-
-    // a few "pipes" / obstacles for depth
-    for (let i = 0; i < 14; i++) {
-      const m = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.6 + Math.random() * 0.4, 0.6 + Math.random() * 0.4, 6 + Math.random() * 6, 10),
-        new THREE.MeshStandardMaterial({ color: 0x0e2a3e, roughness: 0.8, metalness: 0.4 })
-      )
-      m.rotation.z = Math.PI / 2
-      m.position.set(10 + i * 16 + Math.random() * 5, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10)
-      m.castShadow = false
-      m.receiveShadow = true
-      this.scene.add(m)
-      this.parallax.push({ obj: m, factor: 0.6 })
+    // Space background: starfield only (no corridor/walls/grids)
+    const starCount = 1400
+    const starPos = new Float32Array(starCount * 3)
+    for (let i = 0; i < starCount; i++) {
+      // Spread mostly in X ahead of the camera, wide in Y/Z.
+      // We scroll via parallax by shifting position.x in render().
+      const x = -40 + Math.random() * 260
+      const y = (Math.random() - 0.5) * 46
+      const z = (Math.random() - 0.5) * 90
+      starPos[i * 3 + 0] = x
+      starPos[i * 3 + 1] = y
+      starPos[i * 3 + 2] = z
     }
+
+    const starGeo = new THREE.BufferGeometry()
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
+
+    const stars = new THREE.Points(
+      starGeo,
+      new THREE.PointsMaterial({ color: 0xcfe6ff, size: 0.11, sizeAttenuation: false, transparent: true, opacity: 0.9 })
+    )
+    stars.position.set(60, 0, -40)
+    this.scene.add(stars)
+    this.parallax.push({ obj: stars, factor: 0.06 })
 
     // load optional textures (billboard look)
     const loadTex = (url: string) =>
@@ -322,20 +292,14 @@ class Game {
       })
 
     const baseUrl = import.meta.env.BASE_URL
-    Promise.allSettled([
-      loadTex(`${baseUrl}assets/staratlas/airbike.jpg`),
-      loadTex(`${baseUrl}assets/staratlas/greenader.jpg`),
-      loadTex(`${baseUrl}assets/staratlas/bombarella.jpg`),
-    ]).then((results) => {
-      const [a, g, b] = results
+    Promise.allSettled([loadTex(`${baseUrl}assets/staratlas/airbike.jpg`)]).then((results) => {
+      const [a] = results
       if (a.status === 'fulfilled') this.texShip = a.value
-      if (g.status === 'fulfilled') this.texEnemy = g.value
-      if (b.status === 'fulfilled') this.texEnemy2 = b.value
-      this.restylePlayerEnemyMeshes()
+      this.restylePlayerMesh()
     })
   }
 
-  private restylePlayerEnemyMeshes() {
+  private restylePlayerMesh() {
     if (this.player && this.texShip) {
       const plane = this.player.mesh.getObjectByName('sprite') as THREE.Mesh | null
       if (plane) (plane.material as THREE.MeshBasicMaterial).map = this.texShip
@@ -434,23 +398,25 @@ class Game {
   private makePlayer() {
     const group = new THREE.Group()
 
-    // --- Airbike look (texture billboard + small 3D frame) ---
+    // Holder that will be swapped to the FBX model if it loads.
+    const modelRoot = new THREE.Group()
+    modelRoot.name = 'playerModel'
+    group.add(modelRoot)
 
-    // small 3D frame so it feels "real" even before the texture loads
+    // Fallback (simple silhouette + optional sprite texture)
     const frameMat = new THREE.MeshStandardMaterial({ color: 0x2b3a48, roughness: 0.7, metalness: 0.35 })
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.25, 0.35), frameMat)
     frame.position.set(-0.05, 0, -0.05)
-    group.add(frame)
+    modelRoot.add(frame)
 
     const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.22, 0.75, 10), frameMat)
     nose.rotation.z = Math.PI / 2
     nose.position.set(0.78, 0, -0.05)
-    group.add(nose)
+    modelRoot.add(nose)
 
-    // sprite overlay (Airbike still image)
     const sprite = this.makeBillboardSprite(3.2, 1.6, 0xffffff, this.texShip)
     sprite.position.set(0.15, 0, 0.55)
-    group.add(sprite)
+    modelRoot.add(sprite)
 
     // engine glow
     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), new THREE.MeshBasicMaterial({ color: 0x68d9ff }))
@@ -467,6 +433,56 @@ class Game {
       radius: 0.9,
       hp: 5,
     })
+
+    this.tryLoadAirbikeFbx(modelRoot)
+  }
+
+  private tryLoadAirbikeFbx(target: THREE.Group) {
+    const baseUrl = import.meta.env.BASE_URL
+    const url = `${baseUrl}assets/staratlas/airbike.fbx`
+
+    this.fbxLoader.load(
+      url,
+      (obj) => {
+        // Normalize to fit in our 2.5D ortho camera framing.
+        const box = new THREE.Box3().setFromObject(obj)
+        const size = new THREE.Vector3()
+        const center = new THREE.Vector3()
+        box.getSize(size)
+        box.getCenter(center)
+
+        const maxDim = Math.max(size.x, size.y, size.z)
+        const desired = 2.6 // approx width in world units
+        const s = maxDim > 0 ? desired / maxDim : 1
+
+        obj.scale.setScalar(s)
+
+        // Recentre around origin after scaling
+        obj.position.set(-center.x * s, -center.y * s, -center.z * s)
+
+        // Best-guess orientation: make the bike face +X.
+        obj.rotation.set(0, Math.PI / 2, 0)
+
+        // Basic material sanity (some FBX exports come in too dark)
+        obj.traverse((c) => {
+          const m = (c as THREE.Mesh)
+          if ((m as any).isMesh) {
+            m.castShadow = false
+            m.receiveShadow = false
+            const mat = (m.material ?? null) as any
+            if (mat && 'metalness' in mat) mat.metalness = 0.35
+            if (mat && 'roughness' in mat) mat.roughness = 0.65
+          }
+        })
+
+        target.clear()
+        target.add(obj)
+      },
+      undefined,
+      () => {
+        // Keep fallback visuals.
+      }
+    )
   }
 
   private makeAsteroidMesh(size: number) {
@@ -513,127 +529,8 @@ class Game {
   }
 
   private buildWaves() {
-    const mkEnemy = (x: number, y: number, z: number, hp = 2, variant = 0) => {
-      const g = new THREE.Group()
-
-      const core = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(0.75, 0),
-        new THREE.MeshStandardMaterial({ color: variant ? 0xff5a92 : 0xffc14a, roughness: 0.5, metalness: 0.2 })
-      )
-      core.castShadow = false
-      g.add(core)
-
-      const sprite = this.makeBillboardSprite(2.4, 1.6, 0xffffff, variant ? this.texEnemy2 : this.texEnemy)
-      sprite.position.set(0, 0, 0.8)
-      g.add(sprite)
-
-      g.position.set(x, y, z)
-
-      const e = this.addEntity({
-        kind: 'enemy',
-        mesh: g,
-        pos: new THREE.Vector3(x, y, z),
-        vel: new THREE.Vector3(-1.2 - Math.random() * 0.7, (Math.random() - 0.5) * 1.2, 0),
-        radius: 0.9,
-        hp,
-        value: 120,
-      })
-
-      return e
-    }
-
-    const mkTurret = (x: number, y: number, z: number) => {
-      const m = new THREE.Mesh(
-        new THREE.BoxGeometry(1.4, 1.1, 1.1),
-        new THREE.MeshStandardMaterial({ color: 0x7cf9b1, roughness: 0.65, metalness: 0.15 })
-      )
-      m.position.set(x, y, z)
-      const e = this.addEntity({
-        kind: 'enemy',
-        mesh: m,
-        pos: new THREE.Vector3(x, y, z),
-        vel: new THREE.Vector3(-0.5, 0, 0),
-        radius: 0.9,
-        hp: 4,
-        value: 260,
-      })
-      return e
-    }
-
-    const waves: Wave[] = [
-      {
-        at: 8,
-        spawn: (_g) => {
-          mkEnemy(22, 0, 0, 2, 0)
-          mkEnemy(26, 2.5, 1.0, 2, 1)
-        },
-      },
-      {
-        at: 18,
-        spawn: (_g) => {
-          mkEnemy(22, -2.5, -1.0, 2, 0)
-          mkEnemy(24, 0, 0.0, 2, 0)
-          mkEnemy(26, 2.5, 1.0, 2, 0)
-        },
-      },
-      {
-        at: 30,
-        spawn: (_g) => {
-          mkTurret(26, 3.5, -1)
-          mkTurret(29, -3.5, 1)
-        },
-      },
-      {
-        at: 46,
-        spawn: (_g) => {
-          for (let i = 0; i < 5; i++) mkEnemy(24 + i * 2.2, (i - 2) * 1.5, (i % 2 ? 2 : -2) * 0.7, 2, i % 2)
-        },
-      },
-      {
-        at: 60,
-        spawn: (g) => {
-          mkEnemy(24, 0, 0, 3, 1)
-          mkEnemy(28, 2.2, -1.8, 2, 0)
-          mkEnemy(28, -2.2, 1.8, 2, 0)
-          g.spawnPickup(34, 0, 0, Math.random() < 0.55 ? 'power' : 'health')
-        },
-      },
-      {
-        at: 82,
-        spawn: (_g) => {
-          mkTurret(25, 0, 0)
-          mkEnemy(30, 4.2, 0, 2, 0)
-          mkEnemy(30, -4.2, 0, 2, 0)
-        },
-      },
-      {
-        at: 105,
-        spawn: (_g) => {
-          for (let i = 0; i < 7; i++) mkEnemy(24 + i * 2.0, (Math.random() - 0.5) * 8.0, (Math.random() - 0.5) * 4.0, 2, i % 2)
-        },
-      },
-      {
-        at: 128,
-        spawn: (g) => {
-          mkTurret(24, 3.0, -1.8)
-          mkTurret(24, -3.0, 1.8)
-          mkEnemy(29, 0, 0, 4, 1)
-          g.spawnPickup(34, 0, 0, 'power')
-        },
-      },
-      {
-        at: 150,
-        spawn: (_g) => {
-          // mini-boss-ish chunk
-          const boss = mkTurret(28, 0, 0)
-          boss.hp = 10
-          boss.radius = 1.25
-          ;(boss.mesh as THREE.Mesh).scale.set(1.6, 1.6, 1.6)
-        },
-      },
-    ]
-
-    this.waves = waves
+    // Enemy waves are disabled for now (asteroid field only).
+    this.waves = []
   }
 
   spawnPickup(x: number, y: number, z: number, type: 'health' | 'power') {
@@ -886,12 +783,12 @@ class Game {
     this.hudEl.innerHTML = `
       <div><strong>HP</strong>: ${p.hp ?? 0} &nbsp; <strong>Score</strong>: ${this.score}</div>
       <div><strong>Dist</strong>: ${this.distance.toFixed(0)} &nbsp; <strong>CP</strong>: ${this.checkpointIndex} (${this.checkpointDist.toFixed(0)})</div>
-      <div><strong>Power</strong>: ${this.power} &nbsp; <strong>Waves</strong>: ${Math.min(this.waveIndex, this.waves.length)}/${this.waves.length}</div>
+      <div><strong>Power</strong>: ${this.power}</div>
       <div style="opacity:0.75">P pause • R restart</div>
     `
 
     // victory
-    if (this.waveIndex >= this.waves.length && this.distance > 170) {
+    if (this.distance > 170) {
       this.bannerEl.innerHTML = `
         <h1>Segment cleared</h1>
         <p>Score: <strong>${this.score}</strong></p>
