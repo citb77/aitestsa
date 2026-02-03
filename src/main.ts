@@ -182,6 +182,18 @@ class Game {
     this.renderer.setClearColor(0x05060a)
     root.appendChild(this.renderer.domElement)
 
+    // Allow click/tap to start (and to enable audio on browsers that require a gesture)
+    this.renderer.domElement.addEventListener('pointerdown', () => {
+      if (this.started) return
+      if (this.gameOver) {
+        this.respawnAtCheckpoint()
+      } else {
+        this.started = true
+        this.bannerEl.innerHTML = ''
+        this.sfx.pickup()
+      }
+    })
+
     this.scene = new THREE.Scene()
     this.scene.fog = new THREE.Fog(0x05060a, 18, 70)
 
@@ -294,10 +306,11 @@ class Game {
         )
       })
 
+    const baseUrl = import.meta.env.BASE_URL
     Promise.allSettled([
-      loadTex('/assets/staratlas/airbike.jpg'),
-      loadTex('/assets/staratlas/greenader.jpg'),
-      loadTex('/assets/staratlas/bombarella.jpg'),
+      loadTex(`${baseUrl}assets/staratlas/airbike.jpg`),
+      loadTex(`${baseUrl}assets/staratlas/greenader.jpg`),
+      loadTex(`${baseUrl}assets/staratlas/bombarella.jpg`),
     ]).then((results) => {
       const [a, g, b] = results
       if (a.status === 'fulfilled') this.texShip = a.value
@@ -628,14 +641,25 @@ class Game {
 
     const dt = Math.min(1 / 30, this.clock.getDelta())
 
-    // Start gate
+    // Start / title / game-over gate
     if (!this.started) {
-      if (this.input.consumePressed(' ') || this.input.consumePressed('space')) {
-        this.started = true
-        this.bannerEl.innerHTML = ''
-        // user gesture: enable audio
-        this.sfx.pickup()
+      if (this.input.consumePressed('r')) {
+        this.reset(false)
+        this.render(0)
+        return
       }
+
+      if (this.input.consumePressed(' ') || this.input.consumePressed('space')) {
+        if (this.gameOver) {
+          this.respawnAtCheckpoint()
+        } else {
+          this.started = true
+          this.bannerEl.innerHTML = ''
+          // user gesture: enable audio
+          this.sfx.pickup()
+        }
+      }
+
       this.render(0)
       return
     }
@@ -865,21 +889,6 @@ class Game {
       <p>Press <kbd>Space</kbd> to respawn at checkpoint, or <kbd>R</kbd> to restart.</p>
     `
     this.started = false
-
-    // next input handled in animate start gate
-    const origConsume = this.input.consumePressed.bind(this.input)
-    const resumeListener = () => {
-      if (origConsume('r')) {
-        this.reset(false)
-        return
-      }
-      if (origConsume(' ') || origConsume('space')) {
-        this.respawnAtCheckpoint()
-        return
-      }
-      requestAnimationFrame(resumeListener)
-    }
-    requestAnimationFrame(resumeListener)
   }
 
   private render(_dt: number) {
