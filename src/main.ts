@@ -111,7 +111,7 @@ class Sfx {
   }
 }
 
-type EntityKind = 'player' | 'enemy' | 'bullet' | 'enemyBullet' | 'pickup' | 'particle'
+type EntityKind = 'player' | 'enemy' | 'asteroid' | 'bullet' | 'enemyBullet' | 'pickup' | 'particle'
 
 type Entity = {
   kind: EntityKind
@@ -166,6 +166,8 @@ class Game {
   private checkpointDist = 0
   private checkpointIndex = 0
   private nextCheckpointAt = 40
+
+  private nextAsteroidAt = 6
 
   private waves: Wave[] = []
   private waveIndex = 0
@@ -365,6 +367,8 @@ class Game {
     this.checkpointIndex = 0
     this.nextCheckpointAt = 40
 
+    this.nextAsteroidAt = 6
+
     this.gameOver = false
     this.paused = false
 
@@ -417,22 +421,27 @@ class Game {
   private makePlayer() {
     const group = new THREE.Group()
 
-    // body
-    const body = new THREE.Mesh(
-      new THREE.ConeGeometry(0.65, 1.8, 10),
-      new THREE.MeshStandardMaterial({ color: 0x6fe7ff, roughness: 0.4, metalness: 0.35 })
-    )
-    body.rotation.z = -Math.PI / 2
-    group.add(body)
+    // --- Airbike look (texture billboard + small 3D frame) ---
 
-    // sprite overlay
-    const sprite = this.makeBillboardSprite(3.0, 1.6, 0xffffff, this.texShip)
-    sprite.position.set(0, 0, 0.4)
+    // small 3D frame so it feels "real" even before the texture loads
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x2b3a48, roughness: 0.7, metalness: 0.35 })
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.25, 0.35), frameMat)
+    frame.position.set(-0.05, 0, -0.05)
+    group.add(frame)
+
+    const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.22, 0.75, 10), frameMat)
+    nose.rotation.z = Math.PI / 2
+    nose.position.set(0.78, 0, -0.05)
+    group.add(nose)
+
+    // sprite overlay (Airbike still image)
+    const sprite = this.makeBillboardSprite(3.2, 1.6, 0xffffff, this.texShip)
+    sprite.position.set(0.15, 0, 0.55)
     group.add(sprite)
 
     // engine glow
     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), new THREE.MeshBasicMaterial({ color: 0x68d9ff }))
-    glow.position.set(-0.85, 0, 0)
+    glow.position.set(-0.85, 0, 0.05)
     group.add(glow)
 
     group.position.set(0, 0, 0)
@@ -442,8 +451,51 @@ class Game {
       mesh: group,
       pos: new THREE.Vector3(0, 0, 0),
       vel: new THREE.Vector3(0, 0, 0),
-      radius: 0.8,
+      radius: 0.9,
       hp: 5,
+    })
+  }
+
+  private makeAsteroidMesh(size: number) {
+    const geo = new THREE.IcosahedronGeometry(size, 2)
+    const pos = geo.attributes.position as THREE.BufferAttribute
+
+    // displace vertices for a rocky shape
+    const tmp = new THREE.Vector3()
+    for (let i = 0; i < pos.count; i++) {
+      tmp.fromBufferAttribute(pos, i)
+      const n = (Math.sin(tmp.x * 3.1) + Math.sin(tmp.y * 2.7) + Math.sin(tmp.z * 3.7)) / 3
+      const jitter = (Math.random() - 0.5) * 0.25
+      const scale = 1 + n * 0.18 + jitter
+      tmp.multiplyScalar(scale)
+      pos.setXYZ(i, tmp.x, tmp.y, tmp.z)
+    }
+
+    geo.computeVertexNormals()
+
+    const mat = new THREE.MeshStandardMaterial({ color: 0x5b4a3a, roughness: 0.95, metalness: 0.05 })
+    const m = new THREE.Mesh(geo, mat)
+    m.castShadow = false
+    m.receiveShadow = true
+
+    // store a spin vector
+    m.userData.spin = new THREE.Vector3((Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.2)
+    return m
+  }
+
+  private spawnAsteroid(x: number, y: number, z: number) {
+    const size = 0.7 + Math.random() * 1.3
+    const m = this.makeAsteroidMesh(size)
+    m.position.set(x, y, z)
+
+    return this.addEntity({
+      kind: 'asteroid',
+      mesh: m,
+      pos: new THREE.Vector3(x, y, z),
+      vel: new THREE.Vector3(-0.6 - Math.random() * 0.8, (Math.random() - 0.5) * 0.6, 0),
+      radius: size * 0.9,
+      hp: 2,
+      value: 60,
     })
   }
 
@@ -704,6 +756,18 @@ class Game {
       this.waveIndex++
     }
 
+    // asteroid field (continuous hazards)
+    if (this.distance >= this.nextAsteroidAt) {
+      const x = 30 + Math.random() * 10
+      const y = (Math.random() - 0.5) * 10
+      const z = (Math.random() - 0.5) * 6
+      this.spawnAsteroid(x, y, z)
+      // spacing ramps slightly with speed (keep it fair)
+      const base = 6.5
+      const jitter = Math.random() * 4.5
+      this.nextAsteroidAt += base + jitter
+    }
+
     // player movement
     const p = this.player
     const move: Vec2 = { x: 0, y: 0 }
@@ -768,6 +832,16 @@ class Game {
         e.vel.y = lerp(e.vel.y, Math.sin((this.distance + e.pos.x) * 0.1) * 1.2, 0.02)
       }
 
+      // asteroid spin
+      if (e.kind === 'asteroid') {
+        const spin = e.mesh.userData.spin as THREE.Vector3 | undefined
+        if (spin) {
+          e.mesh.rotation.x += spin.x * dt
+          e.mesh.rotation.y += spin.y * dt
+          e.mesh.rotation.z += spin.z * dt
+        }
+      }
+
       // pickup spin
       if (e.kind === 'pickup') {
         e.mesh.rotation.x += dt * 1.8
@@ -826,11 +900,11 @@ class Game {
       return dx * dx + dy * dy + dz * dz <= rr * rr
     }
 
-    // bullets vs enemies
+    // bullets vs enemies/asteroids
     for (const b of this.entities) {
       if (b.kind !== 'bullet') continue
       for (const e of this.entities) {
-        if (e.kind !== 'enemy') continue
+        if (e.kind !== 'enemy' && e.kind !== 'asteroid') continue
         if (!hits(b, e)) continue
 
         b.ttl = 0
@@ -854,13 +928,13 @@ class Game {
       if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
     }
 
-    // enemies ramming player
+    // enemies/asteroids ramming player
     for (const e of this.entities) {
-      if (e.kind !== 'enemy') continue
+      if (e.kind !== 'enemy' && e.kind !== 'asteroid') continue
       if (!hits(e, p)) continue
       e.ttl = 0
-      p.hp = (p.hp ?? 1) - 2
-      this.explode(e.pos, 0xff5a92)
+      p.hp = (p.hp ?? 1) - (e.kind === 'asteroid' ? 3 : 2)
+      this.explode(e.pos, e.kind === 'asteroid' ? 0xc7a07a : 0xff5a92)
       this.explode(p.pos, 0xff3b3b)
       if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
     }
