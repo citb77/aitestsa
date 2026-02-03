@@ -5,12 +5,12 @@ This project uses **Vite** and deploys via **GitHub Actions** to **GitHub Pages*
 ## One-time setup (GitHub)
 
 1. Create a new GitHub repo (example: `staratlas-sidescroller`).
-2. Push this folder to the repo’s **`main`** branch.
+2. Push this folder to the repo’s default branch (**`main`** or **`master`**).
 3. In the GitHub repo:
    - Go to **Settings → Pages**
    - Under **Build and deployment**, set **Source** to **GitHub Actions**
 
-After that, every push to `main` will build and deploy automatically.
+After that, every push to the default branch will build and deploy automatically.
 
 ## Local build
 
