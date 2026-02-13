@@ -1,6 +1,5 @@
 import './style.css'
 import * as THREE from 'three'
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 
 type Vec2 = { x: number; y: number }
 
@@ -23,96 +22,30 @@ class Input {
     })
   }
 
-  isDown(k: string) {
-    return this.keys.has(k.toLowerCase())
-  }
-
+  isDown(k: string) { return this.keys.has(k.toLowerCase()) }
   consumePressed(k: string) {
     k = k.toLowerCase()
     const had = this.pressed.has(k)
     this.pressed.delete(k)
     return had
   }
-
-  clearPressed() {
-    this.pressed.clear()
-  }
+  clearPressed() { this.pressed.clear() }
 }
 
 class Sfx {
   ctx: AudioContext | null = null
-
   private ensure() {
     if (!this.ctx) this.ctx = new AudioContext()
-    // iOS-style: still might be suspended until user gesture
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {})
   }
-
-  shoot() {
-    this.ensure()
-    if (!this.ctx) return
-    const t = this.ctx.currentTime
-
-    const o = this.ctx.createOscillator()
-    const g = this.ctx.createGain()
-    o.type = 'square'
-    o.frequency.setValueAtTime(880, t)
-    o.frequency.exponentialRampToValueAtTime(420, t + 0.08)
-
-    g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.08, t + 0.01)
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09)
-
-    o.connect(g)
-    g.connect(this.ctx.destination)
-    o.start(t)
-    o.stop(t + 0.1)
-  }
-
-  explosion() {
-    this.ensure()
-    if (!this.ctx) return
-    const t = this.ctx.currentTime
-
-    const o = this.ctx.createOscillator()
-    const g = this.ctx.createGain()
-    o.type = 'sawtooth'
-    o.frequency.setValueAtTime(140, t)
-    o.frequency.exponentialRampToValueAtTime(55, t + 0.25)
-
-    g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.18, t + 0.01)
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28)
-
-    o.connect(g)
-    g.connect(this.ctx.destination)
-    o.start(t)
-    o.stop(t + 0.3)
-  }
-
-  pickup() {
-    this.ensure()
-    if (!this.ctx) return
-    const t = this.ctx.currentTime
-
-    const o = this.ctx.createOscillator()
-    const g = this.ctx.createGain()
-    o.type = 'triangle'
-    o.frequency.setValueAtTime(520, t)
-    o.frequency.exponentialRampToValueAtTime(1040, t + 0.12)
-
-    g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.09, t + 0.01)
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16)
-
-    o.connect(g)
-    g.connect(this.ctx.destination)
-    o.start(t)
-    o.stop(t + 0.18)
-  }
+  shoot() { this.ensure(); if (!this.ctx) return; const t = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(420, t + 0.08); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + 0.1) }
+  explosion() { this.ensure(); if (!this.ctx) return; const t = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.25); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + 0.3) }
+  pickup() { this.ensure(); if (!this.ctx) return; const t = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(1040, t + 0.12); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + 0.18) }
+  shield() { this.ensure(); if (!this.ctx) return; const t = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(440, t); o.frequency.exponentialRampToValueAtTime(880, t + 0.15); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + 0.22) }
+  bossHit() { this.ensure(); if (!this.ctx) return; const t = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(200, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.12); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.15, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + 0.18) }
 }
 
-type EntityKind = 'player' | 'enemy' | 'asteroid' | 'bullet' | 'enemyBullet' | 'pickup' | 'particle'
+type EntityKind = 'player' | 'enemy' | 'enemyKamikaze' | 'enemyShooter' | 'asteroid' | 'boss' | 'bullet' | 'enemyBullet' | 'pickup' | 'particle'
 
 type Entity = {
   kind: EntityKind
@@ -121,16 +54,17 @@ type Entity = {
   vel: THREE.Vector3
   radius: number
   hp?: number
+  maxHp?: number
   ttl?: number
   damage?: number
   value?: number
-  pickupType?: 'health' | 'power'
+  pickupType?: 'health' | 'power' | 'shield'
+  shieldActive?: boolean
+  enemyType?: 'kamikaze' | 'shooter'
+  bossPhase?: number
 }
 
-type Wave = {
-  at: number // distance trigger
-  spawn: (g: Game) => void
-}
+type Wave = { at: number; spawn: (g: Game) => void }
 
 class Game {
   readonly root: HTMLElement
@@ -143,162 +77,100 @@ class Game {
   private clock = new THREE.Clock()
   private hudEl: HTMLDivElement
   private bannerEl: HTMLDivElement
-
   private texLoader = new THREE.TextureLoader()
-  private fbxLoader = new FBXLoader()
   private texShip: THREE.Texture | null = null
-
   private entities: Entity[] = []
   private player!: Entity
-
   private paused = false
   private started = false
   private gameOver = false
-
+  private bossSpawned = false
   private score = 0
   private distance = 0
   private scrollSpeed = 9
-
   private fireCooldown = 0
-  private fireRate = 10 // shots/sec baseline
+  private fireRate = 10
   private power = 0
-
-  // Brief invulnerability window after taking damage / respawning (fairness + readability)
   private playerInvuln = 0
-
+  private shieldTime = 0
   private checkpointDist = 0
   private checkpointIndex = 0
   private nextCheckpointAt = 40
-
   private nextAsteroidAt = 6
-
   private waves: Wave[] = []
   private waveIndex = 0
-
-  // parallax layers
   private parallax: { obj: THREE.Object3D; factor: number }[] = []
 
   constructor(root: HTMLElement) {
     this.root = root
-
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
     this.renderer.setSize(root.clientWidth, root.clientHeight)
     this.renderer.setClearColor(0x05060a)
     root.appendChild(this.renderer.domElement)
 
-    // Allow click/tap to start (and to enable audio on browsers that require a gesture)
     this.renderer.domElement.addEventListener('pointerdown', () => {
       if (this.started) return
-      if (this.gameOver) {
-        this.respawnAtCheckpoint()
-      } else {
-        this.started = true
-        this.bannerEl.innerHTML = ''
-        this.sfx.pickup()
-      }
+      if (this.gameOver) this.respawnAtCheckpoint()
+      else { this.started = true; this.bannerEl.innerHTML = ''; this.sfx.pickup() }
     })
 
     this.scene = new THREE.Scene()
-    this.scene.fog = null
-
-    // 2.5D camera: Orthographic projection removes perspective distortion while keeping 3D lighting/geometry.
     const aspect = root.clientWidth / root.clientHeight
-    const viewHeight = 16 // world units visible vertically
+    const viewHeight = 16
     const viewWidth = viewHeight * aspect
     this.camera = new THREE.OrthographicCamera(-viewWidth / 2, viewWidth / 2, viewHeight / 2, -viewHeight / 2, 0.1, 200)
     this.camera.position.set(-4, 0, 18)
     this.camera.lookAt(8, 0, 0)
 
     this.input = new Input(window)
-
     this.hudEl = document.createElement('div')
     this.hudEl.className = 'hud'
     this.root.appendChild(this.hudEl)
-
     this.bannerEl = document.createElement('div')
     this.bannerEl.className = 'banner'
     this.root.appendChild(this.bannerEl)
 
     window.addEventListener('resize', () => this.onResize())
-
     this.buildScene()
     this.reset(true)
-
     this.animate()
   }
 
   private onResize() {
-    const w = this.root.clientWidth
-    const h = this.root.clientHeight
-
-    const aspect = w / h
-    const viewHeight = 16
-    const viewWidth = viewHeight * aspect
-
-    this.camera.left = -viewWidth / 2
-    this.camera.right = viewWidth / 2
-    this.camera.top = viewHeight / 2
-    this.camera.bottom = -viewHeight / 2
+    const w = this.root.clientWidth, h = this.root.clientHeight
+    const aspect = w / h, viewHeight = 16, viewWidth = viewHeight * aspect
+    this.camera.left = -viewWidth / 2; this.camera.right = viewWidth / 2; this.camera.top = viewHeight / 2; this.camera.bottom = -viewHeight / 2
     this.camera.updateProjectionMatrix()
-
     this.renderer.setSize(w, h)
   }
 
   private buildScene() {
     const amb = new THREE.AmbientLight(0xffffff, 0.55)
     this.scene.add(amb)
-
     const dir = new THREE.DirectionalLight(0xaad6ff, 0.85)
     dir.position.set(5, 8, 10)
     this.scene.add(dir)
 
-    // Space background: starfield only (no corridor/walls/grids)
     const starCount = 1400
     const starPos = new Float32Array(starCount * 3)
     for (let i = 0; i < starCount; i++) {
-      // Spread mostly in X ahead of the camera, wide in Y/Z.
-      // We scroll via parallax by shifting position.x in render().
-      const x = -40 + Math.random() * 260
-      const y = (Math.random() - 0.5) * 46
-      const z = (Math.random() - 0.5) * 90
-      starPos[i * 3 + 0] = x
-      starPos[i * 3 + 1] = y
-      starPos[i * 3 + 2] = z
+      starPos[i * 3 + 0] = -40 + Math.random() * 260
+      starPos[i * 3 + 1] = (Math.random() - 0.5) * 46
+      starPos[i * 3 + 2] = (Math.random() - 0.5) * 90
     }
 
     const starGeo = new THREE.BufferGeometry()
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
-
-    const stars = new THREE.Points(
-      starGeo,
-      new THREE.PointsMaterial({ color: 0xcfe6ff, size: 0.11, sizeAttenuation: false, transparent: true, opacity: 0.9 })
-    )
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xcfe6ff, size: 0.11, sizeAttenuation: false, transparent: true, opacity: 0.9 }))
     stars.position.set(60, 0, -40)
     this.scene.add(stars)
     this.parallax.push({ obj: stars, factor: 0.06 })
 
-    // load optional textures (billboard look)
-    const loadTex = (url: string) =>
-      new Promise<THREE.Texture>((resolve, reject) => {
-        this.texLoader.load(
-          url,
-          (t: THREE.Texture) => {
-            t.colorSpace = THREE.SRGBColorSpace
-            t.wrapS = THREE.ClampToEdgeWrapping
-            t.wrapT = THREE.ClampToEdgeWrapping
-            resolve(t)
-          },
-          undefined,
-          reject
-        )
-      })
-
     const baseUrl = import.meta.env.BASE_URL
-    Promise.allSettled([loadTex(`${baseUrl}assets/staratlas/airbike.jpg`)]).then((results) => {
-      const [a] = results
-      if (a.status === 'fulfilled') this.texShip = a.value
-      this.restylePlayerMesh()
+    this.texLoader.load(`${baseUrl}assets/staratlas/airbike.jpg`, (t: THREE.Texture) => {
+      t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.ClampToEdgeWrapping; t.wrapT = THREE.ClampToEdgeWrapping
+      this.texShip = t; this.restylePlayerMesh()
     })
   }
 
@@ -310,16 +182,8 @@ class Game {
   }
 
   private makeBillboardSprite(w: number, h: number, color: number, tex?: THREE.Texture | null) {
-    const mat = new THREE.MeshBasicMaterial({
-      color,
-      map: tex ?? null,
-      transparent: true,
-      opacity: tex ? 1 : 0.95,
-      depthWrite: false,
-    })
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat)
-    mesh.name = 'sprite'
-    return mesh
+    const mat = new THREE.MeshBasicMaterial({ color, map: tex ?? null, transparent: true, opacity: tex ? 1 : 0.95, depthWrite: false })
+    return new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat)
   }
 
   private addEntity(e: Entity) {
@@ -328,30 +192,14 @@ class Game {
     return e
   }
 
-  // (reserved for future pooling)
-
   private reset(firstBoot = false) {
-    // clear entities
     for (const e of this.entities) this.scene.remove(e.mesh)
     this.entities = []
-
-    this.score = 0
-    this.distance = 0
-    this.scrollSpeed = 9
-
-    this.fireCooldown = 0
-    this.fireRate = 10
-    this.power = 0
-    this.playerInvuln = 0
-
-    this.checkpointDist = 0
-    this.checkpointIndex = 0
-    this.nextCheckpointAt = 40
-
+    this.score = 0; this.distance = 0; this.scrollSpeed = 9
+    this.fireCooldown = 0; this.fireRate = 10; this.power = 0; this.playerInvuln = 0; this.shieldTime = 0
+    this.checkpointDist = 0; this.checkpointIndex = 0; this.nextCheckpointAt = 40
     this.nextAsteroidAt = 6
-
-    this.gameOver = false
-    this.paused = false
+    this.gameOver = false; this.paused = false; this.bossSpawned = false
 
     this.makePlayer()
     this.buildWaves()
@@ -360,11 +208,11 @@ class Game {
     if (firstBoot) {
       this.started = false
       this.bannerEl.innerHTML = `
-        <h1>Star Atlas SideScroller — Prototype</h1>
-        <p><strong>Move</strong>: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>Arrow Keys</kbd></p>
-        <p><strong>Shoot</strong>: <kbd>Space</kbd> &nbsp; <strong>Pause</strong>: <kbd>P</kbd> &nbsp; <strong>Restart</strong>: <kbd>R</kbd></p>
-        <p class="muted">Tip: click the game once to enable audio on some browsers.</p>
-        <p><strong>Press</strong> <kbd>Space</kbd> to start.</p>
+        <h1>Star Atlas SideScroller</h1>
+        <p><strong>Move</strong>: W/A/S/D or Arrow Keys &nbsp; <strong>Shoot</strong>: Space</p>
+        <p><strong>Pause</strong>: P &nbsp; <strong>Restart</strong>: R</p>
+        <p class="muted">New: Enemy types (Kamikaze, Shooter) & Boss battle!</p>
+        <p><strong>Press Space to start</strong></p>
       `
     } else {
       this.bannerEl.innerHTML = ''
@@ -372,44 +220,26 @@ class Game {
   }
 
   private respawnAtCheckpoint() {
-    // remove non-player entities
-    for (const e of this.entities) {
-      if (e.kind !== 'player') this.scene.remove(e.mesh)
-    }
+    for (const e of this.entities) { if (e.kind !== 'player') this.scene.remove(e.mesh) }
     this.entities = this.entities.filter((e) => e.kind === 'player')
-
     this.distance = this.checkpointDist
     this.scrollSpeed = 9 + this.checkpointIndex * 0.6
-
-    // rewind waves
     this.waveIndex = 0
     while (this.waveIndex < this.waves.length && this.waves[this.waveIndex].at <= this.distance) this.waveIndex++
-
-    this.player.hp = 5
-    this.playerInvuln = 1.25
-    this.player.mesh.visible = true
-    this.player.pos.set(0, 0, 0)
-    this.player.vel.set(0, 0, 0)
+    this.player.hp = 5; this.playerInvuln = 1.25; this.player.shieldActive = false; this.shieldTime = 0
+    this.player.mesh.visible = true; this.player.pos.set(0, 0, 0); this.player.vel.set(0, 0, 0)
     this.player.mesh.position.copy(this.player.pos)
-
-    this.gameOver = false
-    this.paused = false
-    this.bannerEl.innerHTML = `
-      <h1>Checkpoint ${this.checkpointIndex} reached</h1>
-      <p>Respawned at distance <strong>${this.checkpointDist.toFixed(0)}</strong>. Press <kbd>Space</kbd> to continue.</p>
-    `
+    this.gameOver = false; this.paused = false
+    this.bannerEl.innerHTML = `<h1>Checkpoint ${this.checkpointIndex}</h1><p>Respawned at distance ${this.checkpointDist.toFixed(0)}. Press Space to continue.</p>`
     this.started = false
   }
 
   private makePlayer() {
     const group = new THREE.Group()
-
-    // Holder that will be swapped to the FBX model if it loads.
     const modelRoot = new THREE.Group()
     modelRoot.name = 'playerModel'
     group.add(modelRoot)
 
-    // Fallback (simple silhouette + optional sprite texture)
     const frameMat = new THREE.MeshStandardMaterial({ color: 0x2b3a48, roughness: 0.7, metalness: 0.35 })
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.25, 0.35), frameMat)
     frame.position.set(-0.05, 0, -0.05)
@@ -424,78 +254,78 @@ class Game {
     sprite.position.set(0.15, 0, 0.55)
     modelRoot.add(sprite)
 
-    // engine glow
+    // Shield aura
+    const shieldGeo = new THREE.SphereGeometry(1.4, 16, 16)
+    const shieldMat = new THREE.MeshBasicMaterial({ color: 0x67a0ff, transparent: true, opacity: 0.3, wireframe: true })
+    const shield = new THREE.Mesh(shieldGeo, shieldMat)
+    shield.name = 'shield'
+    shield.visible = false
+    group.add(shield)
+
     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), new THREE.MeshBasicMaterial({ color: 0x68d9ff }))
     glow.position.set(-0.85, 0, 0.05)
     group.add(glow)
-
     group.position.set(0, 0, 0)
 
     this.player = this.addEntity({
-      kind: 'player',
-      mesh: group,
-      pos: new THREE.Vector3(0, 0, 0),
-      vel: new THREE.Vector3(0, 0, 0),
-      radius: 0.9,
-      hp: 5,
+      kind: 'player', mesh: group, pos: new THREE.Vector3(0, 0, 0), vel: new THREE.Vector3(0, 0, 0),
+      radius: 0.9, hp: 5, shieldActive: false,
     })
-
-    this.tryLoadAirbikeFbx(modelRoot)
   }
 
-  private tryLoadAirbikeFbx(target: THREE.Group) {
-    const baseUrl = import.meta.env.BASE_URL
-    const url = `${baseUrl}assets/staratlas/airbike.fbx`
+  private spawnKamikaze(x: number, y: number) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff4444, roughness: 0.6, metalness: 0.3, emissive: 0xff2222, emissiveIntensity: 0.2 })
+    const geo = new THREE.TetrahedronGeometry(0.6)
+    const m = new THREE.Mesh(geo, mat)
+    m.position.set(x, y, 0)
+    return this.addEntity({
+      kind: 'enemyKamikaze', mesh: m, pos: new THREE.Vector3(x, y, 0),
+      vel: new THREE.Vector3(-4, 0, 0), radius: 0.6, hp: 1, value: 150, enemyType: 'kamikaze',
+    })
+  }
 
-    this.fbxLoader.load(
-      url,
-      (obj) => {
-        // Normalize to fit in our 2.5D ortho camera framing.
-        const box = new THREE.Box3().setFromObject(obj)
-        const size = new THREE.Vector3()
-        const center = new THREE.Vector3()
-        box.getSize(size)
-        box.getCenter(center)
+  private spawnShooter(x: number, y: number) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.5, metalness: 0.4, emissive: 0xff4400, emissiveIntensity: 0.15 })
+    const geo = new THREE.BoxGeometry(1.2, 0.5, 0.5)
+    const m = new THREE.Mesh(geo, mat)
+    m.position.set(x, y, 0)
+    return this.addEntity({
+      kind: 'enemyShooter', mesh: m, pos: new THREE.Vector3(x, y, 0),
+      vel: new THREE.Vector3(-1.2, 0, 0), radius: 0.7, hp: 3, value: 200, enemyType: 'shooter', ttl: 15,
+    })
+  }
 
-        const maxDim = Math.max(size.x, size.y, size.z)
-        const desired = 2.6 // approx width in world units
-        const s = maxDim > 0 ? desired / maxDim : 1
+  private spawnBoss(x: number, y: number) {
+    const group = new THREE.Group()
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8800ff, roughness: 0.3, metalness: 0.6, emissive: 0x4400ff, emissiveIntensity: 0.3 })
+    const body = new THREE.Mesh(new THREE.OctahedronGeometry(2.5, 0), bodyMat)
+    group.add(body)
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), coreMat)
+    group.add(core)
+    group.position.set(x, y, 0)
+    return this.addEntity({
+      kind: 'boss', mesh: group, pos: new THREE.Vector3(x, y, 0),
+      vel: new THREE.Vector3(-0.5, 0, 0), radius: 2.5, hp: 50, maxHp: 50, value: 2000, bossPhase: 1,
+    })
+  }
 
-        obj.scale.setScalar(s)
-
-        // Recentre around origin after scaling
-        obj.position.set(-center.x * s, -center.y * s, -center.z * s)
-
-        // Best-guess orientation: make the bike face +X.
-        obj.rotation.set(0, Math.PI / 2, 0)
-
-        // Basic material sanity (some FBX exports come in too dark)
-        obj.traverse((c) => {
-          const m = (c as THREE.Mesh)
-          if ((m as any).isMesh) {
-            m.castShadow = false
-            m.receiveShadow = false
-            const mat = (m.material ?? null) as any
-            if (mat && 'metalness' in mat) mat.metalness = 0.35
-            if (mat && 'roughness' in mat) mat.roughness = 0.65
-          }
-        })
-
-        target.clear()
-        target.add(obj)
-      },
-      undefined,
-      () => {
-        // Keep fallback visuals.
-      }
-    )
+  private buildWaves() {
+    this.waves = [
+      { at: 20, spawn: (g: Game) => g.spawnKamikaze(35, Math.random() * 6 - 3) },
+      { at: 35, spawn: (g: Game) => g.spawnKamikaze(38, Math.random() * 6 - 3) },
+      { at: 55, spawn: (g: Game) => g.spawnShooter(40, 2) },
+      { at: 58, spawn: (g: Game) => g.spawnShooter(42, -2) },
+      { at: 80, spawn: (g: Game) => { g.spawnKamikaze(35, Math.random() * 4 - 2); g.spawnShooter(40, 3) } },
+      { at: 110, spawn: (g: Game) => { g.spawnShooter(35, 0); g.spawnShooter(38, 4); g.spawnKamikaze(32, -3) } },
+      { at: 140, spawn: (g: Game) => { g.spawnShooter(35, 5); g.spawnShooter(38, -5); g.spawnKamikaze(30, 0) } },
+      { at: 165, spawn: (g: Game) => g.spawnBoss(50, 0) },
+    ]
   }
 
   private makeAsteroidMesh(size: number) {
     const geo = new THREE.IcosahedronGeometry(size, 2)
     const pos = geo.attributes.position as THREE.BufferAttribute
-
-    // displace vertices for a rocky shape
     const tmp = new THREE.Vector3()
     for (let i = 0; i < pos.count; i++) {
       tmp.fromBufferAttribute(pos, i)
@@ -505,15 +335,10 @@ class Game {
       tmp.multiplyScalar(scale)
       pos.setXYZ(i, tmp.x, tmp.y, tmp.z)
     }
-
     geo.computeVertexNormals()
-
     const mat = new THREE.MeshStandardMaterial({ color: 0x5b4a3a, roughness: 0.95, metalness: 0.05 })
     const m = new THREE.Mesh(geo, mat)
-    m.castShadow = false
-    m.receiveShadow = true
-
-    // store a spin vector
+    m.castShadow = false; m.receiveShadow = true
     m.userData.spin = new THREE.Vector3((Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.2)
     return m
   }
@@ -522,39 +347,27 @@ class Game {
     const size = 0.7 + Math.random() * 1.3
     const m = this.makeAsteroidMesh(size)
     m.position.set(x, y, z)
-
     return this.addEntity({
-      kind: 'asteroid',
-      mesh: m,
-      pos: new THREE.Vector3(x, y, z),
+      kind: 'asteroid', mesh: m, pos: new THREE.Vector3(x, y, z),
       vel: new THREE.Vector3(-0.6 - Math.random() * 0.8, (Math.random() - 0.5) * 0.6, 0),
-      radius: size * 0.9,
-      hp: 2,
-      value: 60,
+      radius: size * 0.9, hp: 2, value: 60,
     })
   }
 
-  private buildWaves() {
-    // Enemy waves are disabled for now (asteroid field only).
-    this.waves = []
-  }
-
-  spawnPickup(x: number, y: number, z: number, type: 'health' | 'power') {
-    const color = type === 'health' ? 0x58ff7f : 0x67a0ff
-    const m = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.55, 0),
-      new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.2, emissive: color, emissiveIntensity: 0.25 })
-    )
+  spawnPickup(x: number, y: number, z: number, type: 'health' | 'power' | 'shield') {
+    let color: number, geo: THREE.BufferGeometry
+    if (type === 'shield') {
+      color = 0x67a0ff; geo = new THREE.TorusGeometry(0.5, 0.15, 8, 16)
+    } else if (type === 'health') {
+      color = 0x58ff7f; geo = new THREE.OctahedronGeometry(0.55, 0)
+    } else {
+      color = 0x67a0ff; geo = new THREE.OctahedronGeometry(0.55, 0)
+    }
+    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.2, emissive: color, emissiveIntensity: type === 'shield' ? 0.4 : 0.25 }))
     m.position.set(x, y, z)
-
     this.addEntity({
-      kind: 'pickup',
-      mesh: m,
-      pos: new THREE.Vector3(x, y, z),
-      vel: new THREE.Vector3(-0.4, 0, 0),
-      radius: 0.7,
-      ttl: 20,
-      pickupType: type,
+      kind: 'pickup', mesh: m, pos: new THREE.Vector3(x, y, z),
+      vel: new THREE.Vector3(-0.4, 0, 0), radius: type === 'shield' ? 0.7 : 0.55, ttl: 20, pickupType: type,
     })
   }
 
@@ -564,136 +377,109 @@ class Game {
     const mat = new THREE.MeshBasicMaterial({ color })
     const m = new THREE.Mesh(geo, mat)
     m.rotation.z = Math.PI / 2
-
     const speed = isEnemy ? 13 : 20
     const v = new THREE.Vector3(dir.x * speed, dir.y * speed, 0)
     m.position.copy(from)
-
     this.addEntity({
-      kind: isEnemy ? 'enemyBullet' : 'bullet',
-      mesh: m,
-      pos: from.clone(),
-      vel: v,
-      radius: 0.28,
-      ttl: 1.9,
-      damage: isEnemy ? 1 : 1 + Math.floor(this.power / 2),
+      kind: isEnemy ? 'enemyBullet' : 'bullet', mesh: m, pos: from.clone(), vel: v,
+      radius: 0.28, ttl: 1.9, damage: isEnemy ? 1 : 1 + Math.floor(this.power / 2),
     })
   }
 
   private explode(at: THREE.Vector3, color = 0xff9c3b) {
-    // lightweight particles: small spheres
     for (let i = 0; i < 18; i++) {
       const m = new THREE.Mesh(new THREE.SphereGeometry(0.07 + Math.random() * 0.07, 8, 8), new THREE.MeshBasicMaterial({ color }))
       const v = new THREE.Vector3((Math.random() - 0.2) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6)
       m.position.copy(at)
-      this.addEntity({
-        kind: 'particle',
-        mesh: m,
-        pos: at.clone(),
-        vel: v,
-        radius: 0,
-        ttl: 0.45 + Math.random() * 0.45,
-      })
+      this.addEntity({ kind: 'particle', mesh: m, pos: at.clone(), vel: v, radius: 0, ttl: 0.45 + Math.random() * 0.45 })
     }
-
-    // flash
     const flash = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }))
     flash.position.copy(at)
     this.addEntity({ kind: 'particle', mesh: flash, pos: at.clone(), vel: new THREE.Vector3(), radius: 0, ttl: 0.12 })
-
     this.sfx.explosion()
   }
 
   private animate = () => {
     requestAnimationFrame(this.animate)
-
     const dt = Math.min(1 / 30, this.clock.getDelta())
 
-    // Start / title / game-over gate
     if (!this.started) {
-      if (this.input.consumePressed('r')) {
-        this.reset(false)
-        this.render(0)
-        return
-      }
-
+      if (this.input.consumePressed('r')) { this.reset(false); this.render(0); return }
       if (this.input.consumePressed(' ') || this.input.consumePressed('space')) {
-        if (this.gameOver) {
-          this.respawnAtCheckpoint()
-        } else {
-          this.started = true
-          this.bannerEl.innerHTML = ''
-          // user gesture: enable audio
-          this.sfx.pickup()
-        }
+        if (this.gameOver) this.respawnAtCheckpoint()
+        else { this.started = true; this.bannerEl.innerHTML = ''; this.sfx.pickup() }
       }
-
       this.render(0)
       return
     }
 
-    // toggles
     if (this.input.consumePressed('p')) this.paused = !this.paused
     if (this.input.consumePressed('r')) this.reset(false)
 
-    if (this.paused || this.gameOver) {
-      this.render(0)
-      return
-    }
+    if (this.paused || this.gameOver) { this.render(0); return }
 
     this.update(dt)
     this.render(dt)
   }
 
   private update(dt: number) {
-    // difficulty ramps
     this.scrollSpeed = lerp(this.scrollSpeed, 9 + Math.min(6, this.distance / 90), 0.03)
-
     this.distance += this.scrollSpeed * dt
 
-    // i-frames
+    // Shield timer
+    if (this.shieldTime > 0) {
+      this.shieldTime -= dt
+      if (this.shieldTime <= 0) {
+        this.player.shieldActive = false
+        const shield = this.player.mesh.getObjectByName('shield')
+        if (shield) shield.visible = false
+      }
+    }
+
+    // Invulnerability
     this.playerInvuln = Math.max(0, this.playerInvuln - dt)
     if (this.playerInvuln > 0) {
-      // simple flicker for feedback
       this.player.mesh.visible = Math.floor(performance.now() / 70) % 2 === 0
     } else {
       this.player.mesh.visible = true
+      if (this.player.shieldActive) {
+        const shield = this.player.mesh.getObjectByName('shield')
+        if (shield) shield.visible = true
+      }
     }
 
-    // checkpoints
+    // Checkpoints
     if (this.distance >= this.nextCheckpointAt) {
       this.checkpointDist = this.nextCheckpointAt
       this.checkpointIndex++
       this.nextCheckpointAt += 45
       this.score += 250
-      this.bannerEl.innerHTML = `
-        <h1>Checkpoint ${this.checkpointIndex}</h1>
-        <p class="muted">Reached distance ${this.checkpointDist.toFixed(0)}. (+250 score)</p>
-      `
-      setTimeout(() => {
-        if (this.bannerEl.innerHTML.includes('Checkpoint')) this.bannerEl.innerHTML = ''
-      }, 1200)
+      this.bannerEl.innerHTML = `<h1>Checkpoint ${this.checkpointIndex}</h1><p class="muted">Reached distance ${this.checkpointDist.toFixed(0)}. (+250 score)</p>`
+      setTimeout(() => { if (this.bannerEl.innerHTML.includes('Checkpoint')) this.bannerEl.innerHTML = '' }, 1200)
     }
 
-    // spawn waves
+    // Spawn waves
     while (this.waveIndex < this.waves.length && this.distance >= this.waves[this.waveIndex].at) {
       this.waves[this.waveIndex].spawn(this)
       this.waveIndex++
     }
 
-    // asteroid field (continuous hazards)
-    if (this.distance >= this.nextAsteroidAt) {
+    // Boss warning
+    if (this.distance >= 155 && !this.bossSpawned) {
+      this.bossSpawned = true
+      this.bannerEl.innerHTML = `<h1 style="color:#ff4444">WARNING: BOSS APPROACHING</h1><p>Prepare for battle!</p>`
+      setTimeout(() => { if (this.bannerEl.innerHTML.includes('WARNING')) this.bannerEl.innerHTML = '' }, 2000)
+    }
+
+    // Asteroid field
+    if (this.distance >= this.nextAsteroidAt && !this.bossSpawned) {
       const x = 30 + Math.random() * 10
       const y = (Math.random() - 0.5) * 10
       const z = (Math.random() - 0.5) * 6
       this.spawnAsteroid(x, y, z)
-      // spacing ramps slightly with speed (keep it fair)
-      const base = 6.5
-      const jitter = Math.random() * 4.5
-      this.nextAsteroidAt += base + jitter
+      this.nextAsteroidAt += 6.5 + Math.random() * 4.5
     }
 
-    // player movement
     const p = this.player
     const move: Vec2 = { x: 0, y: 0 }
     if (this.input.isDown('w') || this.input.isDown('arrowup')) move.y += 1
@@ -708,56 +494,79 @@ class Game {
     p.pos.x = clamp(p.pos.x + p.vel.x * dt, -1.2, 5.5)
     p.pos.y = clamp(p.pos.y + p.vel.y * dt, -5.5, 5.5)
 
-    // slight banking
     p.mesh.rotation.z = lerp(p.mesh.rotation.z, -move.y * 0.18, 0.1)
     p.mesh.rotation.y = lerp(p.mesh.rotation.y, move.x * 0.12, 0.1)
 
-    // shoot
+    // Shooting
     this.fireCooldown = Math.max(0, this.fireCooldown - dt)
     const wantShoot = this.input.isDown(' ') || this.input.isDown('space')
     if (wantShoot && this.fireCooldown <= 0) {
       const spacing = 1 / (this.fireRate + this.power * 1.2)
       this.fireCooldown = spacing
-
       const base = p.pos.clone().add(new THREE.Vector3(1.15, 0, 0))
       this.spawnBullet(base, { x: 1, y: 0 }, false)
-      if (this.power >= 2) this.spawnBullet(base.clone().add(new THREE.Vector3(0, 0.25, 0)), { x: 1, y: 0.08 }, false)
-      if (this.power >= 2) this.spawnBullet(base.clone().add(new THREE.Vector3(0, -0.25, 0)), { x: 1, y: -0.08 }, false)
-
+      if (this.power >= 2) {
+        this.spawnBullet(base.clone().add(new THREE.Vector3(0, 0.25, 0)), { x: 1, y: 0.08 }, false)
+        this.spawnBullet(base.clone().add(new THREE.Vector3(0, -0.25, 0)), { x: 1, y: -0.08 }, false)
+      }
       this.sfx.shoot()
     }
 
-    // update entities
+    // Update entities
     for (const e of this.entities) {
       if (e.kind === 'player') continue
 
-      // global scroll
+      // Global scroll
       e.pos.x -= this.scrollSpeed * dt
-
       e.pos.addScaledVector(e.vel, dt)
 
-      // TTL
       if (typeof e.ttl === 'number') e.ttl -= dt
 
-      // enemy AI shooting
-      if (e.kind === 'enemy') {
-        const t = performance.now() * 0.001
-        e.mesh.rotation.y += dt * 0.8
-        e.mesh.rotation.x = Math.sin(t * 1.3 + e.pos.x) * 0.2
+      // Enemy AI
+      if (e.kind === 'enemyKamikaze') {
+        // Kamikaze: accelerates toward player
+        const dx = p.pos.x - e.pos.x
+        const dy = p.pos.y - e.pos.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist > 0) {
+          e.vel.x = lerp(e.vel.x, (dx / dist) * 5, 0.05)
+          e.vel.y = lerp(e.vel.y, (dy / dist) * 5, 0.05)
+        }
+        e.mesh.rotation.x += dt * 3
+        e.mesh.rotation.z += dt * 5
+      }
 
-        // occasional bullet
-        if (Math.random() < dt * 0.7 && e.pos.x < 16 && e.pos.x > 2) {
+      if (e.kind === 'enemyShooter') {
+        e.mesh.rotation.y += dt * 0.8
+        // Shoot at player
+        if (Math.random() < dt * 0.5 && e.pos.x < 16 && e.pos.x > 2) {
           const toPlayer = p.pos.clone().sub(e.pos)
           toPlayer.z = 0
           toPlayer.normalize()
           this.spawnBullet(e.pos.clone().add(new THREE.Vector3(-0.7, 0, 0)), { x: toPlayer.x, y: toPlayer.y }, true)
         }
-
-        // gentle oscillation
         e.vel.y = lerp(e.vel.y, Math.sin((this.distance + e.pos.x) * 0.1) * 1.2, 0.02)
       }
 
-      // asteroid spin
+      if (e.kind === 'boss') {
+        // Boss movement patterns
+        const t = performance.now() * 0.001
+        e.pos.y = Math.sin(t * 0.8) * 4
+        if (e.hp && e.hp < e.maxHp! * 0.5) {
+          e.pos.y = Math.sin(t * 1.5) * 5 // Faster in phase 2
+        }
+        e.mesh.rotation.y += dt * 0.3
+        e.mesh.rotation.x = Math.sin(t * 0.5) * 0.1
+
+        // Boss shooting patterns
+        if (Math.random() < dt * 0.8 && e.pos.x < 20) {
+          for (let i = -2; i <= 2; i++) {
+            this.spawnBullet(e.pos.clone().add(new THREE.Vector3(-2, 0, 0)), { x: -0.8, y: i * 0.3 }, true)
+          }
+        }
+      }
+
+      // Asteroid spin
       if (e.kind === 'asteroid') {
         const spin = e.mesh.userData.spin as THREE.Vector3 | undefined
         if (spin) {
@@ -767,155 +576,147 @@ class Game {
         }
       }
 
-      // pickup spin
+      // Pickup spin
       if (e.kind === 'pickup') {
         e.mesh.rotation.x += dt * 1.8
         e.mesh.rotation.y += dt * 2.1
       }
 
-      // particle fade
+      // Particle fade
       if (e.kind === 'particle' && typeof e.ttl === 'number') {
         const mat = (e.mesh as THREE.Mesh).material as THREE.MeshBasicMaterial
-        if (mat && 'opacity' in mat) {
-          mat.opacity = clamp((e.ttl ?? 0) * 3.0, 0, 1)
+        if (mat.opacity !== undefined) mat.opacity = Math.max(0, e.ttl / 0.9)
+        if (e.ttl <= 0) {
+          this.scene.remove(e.mesh)
+          this.entities = this.entities.filter((ent) => ent !== e)
         }
       }
 
-      e.mesh.position.copy(e.pos)
-    }
-
-    // collisions
-    this.handleCollisions(dt)
-
-    // cleanup
-    this.entities = this.entities.filter((e) => {
-      const dead = (typeof e.ttl === 'number' && e.ttl <= 0) || e.pos.x < -18 || e.pos.x > 60
-      if (dead) this.scene.remove(e.mesh)
-      return !dead
-    })
-
-    // update hud
-    this.hudEl.innerHTML = `
-      <div><strong>HP</strong>: ${p.hp ?? 0} &nbsp; <strong>Score</strong>: ${this.score}</div>
-      <div><strong>Dist</strong>: ${this.distance.toFixed(0)} &nbsp; <strong>CP</strong>: ${this.checkpointIndex} (${this.checkpointDist.toFixed(0)})</div>
-      <div><strong>Power</strong>: ${this.power}</div>
-      <div style="opacity:0.75">P pause • R restart</div>
-    `
-
-    // victory
-    if (this.distance > 170) {
-      this.bannerEl.innerHTML = `
-        <h1>Segment cleared</h1>
-        <p>Score: <strong>${this.score}</strong></p>
-        <p class="muted">Press <kbd>R</kbd> to replay.</p>
-      `
-      this.gameOver = true
-    }
-  }
-
-  private handleCollisions(_dt: number) {
-    const p = this.player
-    const invulnerable = this.playerInvuln > 0
-
-    const hits = (a: Entity, b: Entity) => {
-      if (a.radius <= 0 || b.radius <= 0) return false
-      const dx = a.pos.x - b.pos.x
-      const dy = a.pos.y - b.pos.y
-      const dz = a.pos.z - b.pos.z
-      const rr = a.radius + b.radius
-      return dx * dx + dy * dy + dz * dz <= rr * rr
-    }
-
-    // bullets vs enemies/asteroids
-    for (const b of this.entities) {
-      if (b.kind !== 'bullet') continue
-      for (const e of this.entities) {
-        if (e.kind !== 'enemy' && e.kind !== 'asteroid') continue
-        if (!hits(b, e)) continue
-
-        b.ttl = 0
-        e.hp = Math.max(0, (e.hp ?? 1) - (b.damage ?? 1))
-        if ((e.hp ?? 0) <= 0) {
-          this.score += e.value ?? 100
-          e.ttl = 0
-          this.explode(e.pos, 0xffa34a)
-          if (Math.random() < 0.18) this.spawnPickup(e.pos.x + 1.2, e.pos.y, e.pos.z, Math.random() < 0.5 ? 'health' : 'power')
+      // Bullet cleanup
+      if (e.kind === 'bullet' || e.kind === 'enemyBullet') {
+        if (e.ttl !== undefined && e.ttl <= 0) {
+          this.scene.remove(e.mesh)
+          this.entities = this.entities.filter((ent) => ent !== e)
         }
       }
     }
 
-    // enemy bullets vs player
-    if (!invulnerable) {
-      for (const b of this.entities) {
-        if (b.kind !== 'enemyBullet') continue
-        if (!hits(b, p)) continue
-        b.ttl = 0
-        p.hp = Math.max(0, (p.hp ?? 1) - (b.damage ?? 1))
-        this.playerInvuln = 0.75
-        this.explode(p.pos.clone().add(new THREE.Vector3(0.2, 0, 0)), 0xff3b3b)
-        if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
+    // Cleanup off-screen entities
+    for (let i = this.entities.length - 1; i >= 0; i--) {
+      const e = this.entities[i]
+      if (e.kind === 'player') continue
+      if (e.pos.x < -25 || e.pos.x > 60 || e.pos.y < -15 || e.pos.y > 15) {
+        this.scene.remove(e.mesh)
+        this.entities.splice(i, 1)
       }
     }
 
-    // enemies/asteroids ramming player
-    if (!invulnerable) {
-      for (const e of this.entities) {
-        if (e.kind !== 'enemy' && e.kind !== 'asteroid') continue
-        if (!hits(e, p)) continue
-        e.ttl = 0
-        p.hp = Math.max(0, (p.hp ?? 1) - (e.kind === 'asteroid' ? 3 : 2))
-        this.playerInvuln = 0.85
-        this.explode(e.pos, e.kind === 'asteroid' ? 0xc7a07a : 0xff5a92)
-        this.explode(p.pos, 0xff3b3b)
-        if ((p.hp ?? 0) <= 0) this.onPlayerDeath()
+    // Collision detection
+    const bullets = this.entities.filter((e) => e.kind === 'bullet')
+    const enemyBullets = this.entities.filter((e) => e.kind === 'enemyBullet')
+    const enemies = this.entities.filter((e) => e.kind?.startsWith('enemy') || e.kind === 'boss')
+    const pickups = this.entities.filter((e) => e.kind === 'pickup')
+
+    for (const b of bullets) {
+      for (const e of enemies) {
+        if (b.pos.distanceTo(e.pos) < b.radius + e.radius) {
+          this.scene.remove(b.mesh)
+          this.entities = this.entities.filter((ent) => ent !== b)
+          e.hp = (e.hp ?? 1) - (b.damage ?? 1)
+          if (e.hp !== undefined && e.hp <= 0) {
+            this.explode(e.pos)
+            this.scene.remove(e.mesh)
+            this.entities = this.entities.filter((ent) => ent !== e)
+            this.score += e.value ?? 100
+            if (e.kind === 'boss') {
+              this.bannerEl.innerHTML = `<h1>VICTORY!</h1><p>BOSS DEFEATED! (+${e.value} pts)</p>`
+              this.bossSpawned = false
+            }
+          } else if (e.kind === 'boss') {
+            this.sfx.bossHit()
+          }
+          break
+        }
       }
     }
 
-    // pickups
-    for (const pu of this.entities) {
-      if (pu.kind !== 'pickup') continue
-      if (!hits(pu, p)) continue
-      pu.ttl = 0
-      if (pu.pickupType === 'health') {
-        p.hp = clamp((p.hp ?? 0) + 2, 0, 9)
-        this.score += 80
-      } else {
-        this.power = clamp(this.power + 1, 0, 6)
-        this.score += 120
+    for (const b of enemyBullets) {
+      if (b.pos.distanceTo(p.pos) < b.radius + p.radius) {
+        this.scene.remove(b.mesh)
+        this.entities = this.entities.filter((ent) => ent !== b)
+        if (this.playerInvuln <= 0 && !p.shieldActive) {
+          p.hp = (p.hp ?? 5) - (b.damage ?? 1)
+          this.playerInvuln = 1.25
+          if (p.hp !== undefined && p.hp <= 0) {
+            this.explode(p.pos)
+            this.scene.remove(p.mesh)
+            this.entities = this.entities.filter((ent) => ent !== p)
+            this.gameOver = true
+            this.bannerEl.innerHTML = `<h1>GAME OVER</h1><p>Distance: ${this.distance.toFixed(0)} • Score: ${this.score}</p><p>Press R to restart</p>`
+          }
+        }
       }
-      this.sfx.pickup()
     }
-  }
 
-  private onPlayerDeath() {
-    this.gameOver = true
-    this.playerInvuln = 0
-    this.player.mesh.visible = true
-    this.bannerEl.innerHTML = `
-      <h1>Ship down</h1>
-      <p>Score: <strong>${this.score}</strong></p>
-      <p>Press <kbd>Space</kbd> to respawn at checkpoint, or <kbd>R</kbd> to restart.</p>
-    `
-    this.started = false
+    for (const e of enemies) {
+      if (e.pos.distanceTo(p.pos) < e.radius + p.radius) {
+        if (this.playerInvuln <= 0 && !p.shieldActive) {
+          p.hp = (p.hp ?? 5) - 1
+          this.playerInvuln = 1.25
+          this.explode(p.pos.clone().add(e.pos).multiplyScalar(0.5))
+          if (p.hp !== undefined && p.hp <= 0) {
+            this.scene.remove(p.mesh)
+            this.entities = this.entities.filter((ent) => ent !== p)
+            this.gameOver = true
+            this.bannerEl.innerHTML = `<h1>GAME OVER</h1><p>Distance: ${this.distance.toFixed(0)} • Score: ${this.score}</p><p>Press R to restart</p>`
+          }
+        }
+      }
+    }
+
+    for (const pu of pickups) {
+      if (pu.pos.distanceTo(p.pos) < pu.radius + p.radius) {
+        this.scene.remove(pu.mesh)
+        this.entities = this.entities.filter((ent) => ent !== pu)
+        if (pu.pickupType === 'health') {
+          p.hp = Math.min((p.hp ?? 5) + 1, 5)
+        } else if (pu.pickupType === 'shield') {
+          p.shieldActive = true
+          this.shieldTime = 8
+        } else {
+          this.power = Math.min(this.power + 1, 5)
+        }
+        this.sfx.pickup()
+      }
+    }
   }
 
   private render(_dt: number) {
-    // parallax motion: based on distance
-    for (const p of this.parallax) {
-      p.obj.position.x = 60 - this.distance * p.factor
+    this.renderer.render(this.scene, this.camera)
+    this.updateHud()
+  }
+
+  private updateHud() {
+    // Count active enemies
+    const enemyCount = this.entities.filter((e) => e.kind?.startsWith('enemy') || e.kind === 'boss').length
+    
+    // Calculate next wave info
+    let nextWaveInfo = ''
+    if (this.waveIndex < this.waves.length) {
+      const nextWave = this.waves[this.waveIndex]
+      const distToWave = Math.max(0, nextWave.at - this.distance)
+      nextWaveInfo = ` | Next wave: ${distToWave.toFixed(0)}m`
+    } else if (this.bossSpawned) {
+      nextWaveInfo = ' | BOSS FIGHT!'
+    } else {
+      nextWaveInfo = ' | Clear!'
     }
 
-    // camera follows player a bit
-    this.camera.position.y = lerp(this.camera.position.y, this.player.pos.y * 0.08, 0.05)
-    this.camera.lookAt(8, this.camera.position.y * 0.6, 0)
-
-    this.player.mesh.position.copy(this.player.pos)
-
-    this.renderer.render(this.scene, this.camera)
+    this.hudEl.innerHTML = `
+      <strong>Score:</strong> ${this.score} <br>
+      <strong>Distance:</strong> ${this.distance.toFixed(0)}m <br>
+      <strong>Wave:</strong> ${this.waveIndex}/${this.waves.length} <br>
+      <strong>Enemies:</strong> ${enemyCount}${nextWaveInfo}
+    `
   }
 }
-
-const root = document.querySelector<HTMLDivElement>('#app')
-if (!root) throw new Error('Missing #app')
-
-new Game(root)
